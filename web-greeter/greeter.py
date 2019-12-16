@@ -34,74 +34,80 @@ from typing import (
 )
 
 # 3rd-Party Libs
-from whither.app import App
-from whither.base.config_loader import ConfigLoader
-from whither.bridge import BridgeObject
+from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QFile
+from PyQt5.QtCore import QUrl
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWebChannel import QWebChannel
+from PyQt5.QtWebEngineWidgets import QWebEngineScript
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 # This Application
 import resources
 from bridge import (
-    Config,
     Greeter,
     ThemeUtils,
 )
-
-# Typing Helpers
-BridgeObj = Type[BridgeObject]
 
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 CONFIG_FILE = os.path.join(BASE_DIR, 'whither.yml')
 
 
-class WebGreeter(App):
+class WebGreeter(QApplication):
     greeter = None         # type: ClassVar[BridgeObj]
-    greeter_config = None  # type: ClassVar[BridgeObj]
     theme_utils = None     # type: ClassVar[BridgeObj]
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__('WebGreeter', *args, **kwargs)
-        self.logger.debug('Web Greeter started.')
-        self.greeter = Greeter(self.config.themes_dir)
-        self.greeter_config = Config(self.config)
-        self.theme_utils = ThemeUtils(self.greeter, self.config)
-        self._web_container.bridge_objects = (self.greeter, self.greeter_config, self.theme_utils)
+        super().__init__([])
 
-        self._web_container.initialize_bridge_objects()
-        self._web_container.load_script(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
+        self._main_window = QMainWindow()
+        #self._main_window.setAttribute(Qt.WA_DeleteOnClose)
+        self._main_window.setWindowTitle('Web Greeter for LightDM')
+        #self._main_window.setWindowFlags(self._main_window.windowFlags() | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.MaximizeUsingFullscreenGeometryHint)
+        self._main_window.setCursor(Qt.ArrowCursor)
+        #self._main_window.setWindowState(Qt.WindowMaximized)
+        self.view = QWebEngineView(parent=self._main_window)
+        self.view.show()
+        self._main_window.setCentralWidget(self.view)
+        self._main_window.show()
+
+        self.greeter = Greeter('/usr/share/web-greeter/themes')
+        self.theme_utils = ThemeUtils(self.greeter)
+
+        self._web_container_bridge_objects = (self.greeter, self.theme_utils)
+        self.channel = QWebChannel(self.view.page())
+        self.view.page().setWebChannel(self.channel)
+        registered_objects = self.channel.registeredObjects()
+        for obj in self._web_container_bridge_objects:
+            if obj not in registered_objects:
+                self.channel.registerObject(obj._name, obj)
+
+        self._create_webengine_script(':/qwebchannel/qwebchannel.js', 'QWebChannel API')
+        self._create_webengine_script(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
+        self.view.page().scripts().insert(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
         self.load_theme()
 
-    @classmethod
-    def __pre_init__(cls):
-        ConfigLoader.add_filter(cls.validate_greeter_config_data)
+    @staticmethod
+    def _create_webengine_script(path: QUrl, name: str) -> QWebEngineScript:
+        script = QWebEngineScript()
+        script_file = QFile(path)
+
+        if script_file.open(QFile.ReadOnly):
+            script_string = str(script_file.readAll(), 'utf-8')
+
+            script.setInjectionPoint(QWebEngineScript.DocumentCreation)
+            script.setName(name)
+            script.setWorldId(QWebEngineScript.MainWorld)
+            script.setSourceCode(script_string)
+
+        return script
 
     def _before_web_container_init(self):
         self.get_and_apply_user_config()
 
-    @classmethod
-    def validate_greeter_config_data(cls, key: str, data: str) -> str:
-        if "'@" not in data:
-            return data
-
-        if 'WebGreeter' == key:
-            path = '../build/web-greeter/whither.yml'
-        else:
-            path = '../build/dist/web-greeter.yml'
-
-        return open(path, 'r').read()
-
-    def get_and_apply_user_config(self):
-        config_file = os.path.join(self.config.config_dir, 'web-greeter.yml')
-        branding_config = ConfigLoader('branding', config_file).config
-        greeter_config = ConfigLoader('greeter', config_file).config
-
-        self.config.branding.update(branding_config)
-        self.config.greeter.update(greeter_config)
-
-        self._config.debug_mode = greeter_config['debug_mode']
-
     def load_theme(self):
-        self.logger.debug('Loading theme...')
         theme_url = '/{0}/{1}/index.html'.format(self.config.themes_dir, self.config.greeter.theme)
         self._web_container.load(theme_url)
 

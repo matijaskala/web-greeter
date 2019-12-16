@@ -66,5 +66,4 @@ def user_to_dict(user):
 
 
 from .Greeter import Greeter
-from .Config import Config
 from .ThemeUtils import ThemeUtils

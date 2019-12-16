@@ -31,29 +31,25 @@ from glob import glob
 import tempfile
 
 # 3rd-Party Libs
-from whither.bridge import (
-    BridgeObject,
-    bridge,
-    Variant,
-)
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QVariant
 
 
-class ThemeUtils(BridgeObject):
+class ThemeUtils(QObject):
 
-    def __init__(self, greeter, config, *args, **kwargs):
+    def __init__(self, greeter, *args, **kwargs):
         super().__init__(name='ThemeUtils', *args, **kwargs)
 
-        self._config = config
         self._greeter = greeter
 
         self._allowed_dirs = (
-            self._config.themes_dir,
-            self._config.branding.background_images_dir,
-            self._greeter.shared_data_directory,
+            '/usr/share/web-greeter/themes',
+            '/usr/share/wallpapers',
             tempfile.gettempdir(),
         )
 
-    @bridge.method(str, bool, result=Variant)
+    @pyqtSlot(str, bool, result=QVariant)
     def dirlist(self, dir_path, only_images=True):
         if not dir_path or not isinstance(dir_path, str) or '/' == dir_path:
             return []
