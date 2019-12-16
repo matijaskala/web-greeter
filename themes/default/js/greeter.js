@@ -193,7 +193,7 @@ class ThemeConfig {
 
 		this.logo                  = greeter_config.branding.logo || 'img/antergos.png';
 		this.user_image            = greeter_config.branding.user_image || 'img/antergos-logo-user.png';
-		this.background_images_dir = greeter_config.branding.background_images_dir || '/usr/share/backgrounds';
+		this.background_images_dir = greeter_config.branding.background_images_dir || '/usr/share/wallpapers';
 		this.debug                 = greeter_config.greeter.debug_mode || false;
 		this.background_images     = this._get( 'background_manager', 'background_images' );
 		this.images_cache_expires  = moment.unix( parseInt( this._get( 'background_manager', 'cache_expires' ) ) );
@@ -329,7 +329,7 @@ class BackgroundManager {
 			for ( let image_file of _config.background_images ) {
 				let $link = $( '<a href="#"><div>' ),
 					$img_el = $link.children( 'div' ),
-					img_url = `url(web-greeter://${image_file})`;
+					img_url = `url(file:///${image_file})`;
 
 				if ( image_file === this.current_background || img_url === current_bg_url ) {
 					$link.addClass( 'active' );

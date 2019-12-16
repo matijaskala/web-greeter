@@ -84,10 +84,12 @@ class WebGreeter(QApplication):
             if obj not in registered_objects:
                 self.channel.registerObject(obj._name, obj)
 
-        self._create_webengine_script(':/qwebchannel/qwebchannel.js', 'QWebChannel API')
-        self._create_webengine_script(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
-        self.view.page().scripts().insert(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
+        script = self._create_webengine_script(':/qtwebchannel/qwebchannel.js', 'QWebChannel API')
+        self.view.page().scripts().insert(script)
+        script = self._create_webengine_script(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
+        self.view.page().scripts().insert(script)
         self.load_theme()
+        self._main_window.setGeometry(self.desktop().availableGeometry())
 
     @staticmethod
     def _create_webengine_script(path: QUrl, name: str) -> QWebEngineScript:
@@ -108,11 +110,11 @@ class WebGreeter(QApplication):
         self.get_and_apply_user_config()
 
     def load_theme(self):
-        theme_url = '/{0}/{1}/index.html'.format(self.config.themes_dir, self.config.greeter.theme)
-        self._web_container.load(theme_url)
+        theme_url = 'file:///{0}/{1}/index.html'.format('/usr/share/web-greeter/themes', 'default')
+        self.view.page().load(QUrl(theme_url))
 
 
 if __name__ == '__main__':
     greeter = WebGreeter()
 
-    greeter.run()
+    greeter.exec()

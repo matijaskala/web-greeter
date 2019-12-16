@@ -39,7 +39,8 @@ from PyQt5.QtCore import QVariant
 class ThemeUtils(QObject):
 
     def __init__(self, greeter, *args, **kwargs):
-        super().__init__(name='ThemeUtils', *args, **kwargs)
+        super().__init__(parent=None)
+        self._name = 'ThemeUtils'
 
         self._greeter = greeter
 

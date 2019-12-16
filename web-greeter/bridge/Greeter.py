@@ -68,7 +68,7 @@ class Greeter(QObject):
 
     def __init__(self, themes_dir, *args, **kwargs):
         super().__init__(parent=None)
-        _name = 'LightDMGreeter'
+        self._name = 'LightDMGreeter'
 
         self._shared_data_directory = ''
         self._themes_directory = themes_dir
